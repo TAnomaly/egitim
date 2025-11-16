@@ -9,133 +9,365 @@
 <body>
     <div class="container">
         <header>
-            <h1>🤖 ROS2 İnteraktif Simülatör</h1>
-            <p>WebAssembly & Rust - Gazebo-Style 2D Environment</p>
+            <div>
+                <h1>🤖 ROS2 İnteraktif Simülatör</h1>
+                <p>WASM &amp; ROS2 ile gerçek zamanlı etkileşim</p>
+            </div>
+            <div class="header-meta">
+                <span>WASM Runtime</span>
+                <span>Canvas 2D</span>
+                <span>ROS2 Automation</span>
+                <button class="btn-small palette-trigger" onclick="openCommandPalette()">Komut Paleti ⌘K</button>
+            </div>
         </header>
 
         <div class="main-content">
-            <!-- Left Panel: Robot & Environment Controls -->
+            <!-- Left Panel: Tabbed Controls -->
             <div class="left-panel">
-                <div class="panel-section">
-                    <h2>🤖 Robot Kontrolleri</h2>
-
-                    <div class="control-group">
-                        <h3>Robot Ekle</h3>
-                        <input type="text" id="robotName" placeholder="Robot ismi (örn: turtle1)">
-                        <select id="robotType">
-                            <option value="turtlebot">TurtleBot3</option>
-                            <option value="differential">Differential Drive</option>
-                            <option value="ackermann">Ackermann Drive</option>
-                        </select>
-                        <button onclick="addRobot()" class="btn-primary">Robot Ekle</button>
+                <div class="tabbed-panel">
+                    <div class="tab-header">
+                        <button class="tab-btn active" data-tab="robots">Robotlar</button>
+                        <button class="tab-btn" data-tab="topics">Topics &amp; Nodes</button>
+                        <button class="tab-btn" data-tab="automation">Otomasyon</button>
+                        <button class="tab-btn" data-tab="playbooks">Komut Stüdyosu</button>
+                        <button class="tab-btn" data-tab="ops">ROS Ops</button>
                     </div>
 
-                    <div class="control-group">
-                        <h3>Robot Hareket</h3>
-                        <select id="controlRobot">
-                            <option value="">Robot Seç...</option>
-                        </select>
-                        <div class="velocity-control">
-                            <label>Linear Velocity (m/s):</label>
-                            <input type="range" id="linearVel" min="-100" max="100" value="0" step="5">
-                            <span id="linearVelValue">0</span>
+                    <div class="tab-content active" data-tab-content="robots">
+                        <div class="panel-section">
+                            <h2>🤖 Robot Kontrolleri</h2>
+                            <div class="control-group">
+                                <h3>Robot Ekle</h3>
+                                <input type="text" id="robotName" placeholder="Robot ismi (örn: turtle1)">
+                                <select id="robotType">
+                                    <option value="turtlebot">TurtleBot3</option>
+                                    <option value="differential">Differential Drive</option>
+                                    <option value="ackermann">Ackermann Drive</option>
+                                </select>
+                                <button onclick="addRobot()" class="btn-primary">Robot Ekle</button>
+                            </div>
+
+                            <div class="control-group">
+                                <h3>Robot Hareket</h3>
+                                <select id="controlRobot">
+                                    <option value="">Robot Seç...</option>
+                                </select>
+                                <div class="velocity-control">
+                                    <label>Linear Velocity (m/s):</label>
+                                    <input type="range" id="linearVel" min="-100" max="100" value="0" step="5">
+                                    <span id="linearVelValue">0</span>
+                                </div>
+                                <div class="velocity-control">
+                                    <label>Angular Velocity (rad/s):</label>
+                                    <input type="range" id="angularVel" min="-3" max="3" value="0" step="0.1">
+                                    <span id="angularVelValue">0</span>
+                                </div>
+                                <div class="keyboard-controls">
+                                    <p><strong>Klavye Kontrolleri:</strong></p>
+                                    <div class="key-grid">
+                                        <div></div>
+                                        <button class="key-btn" onclick="setVelocity(50, 0)">↑<br>W</button>
+                                        <div></div>
+                                        <button class="key-btn" onclick="setVelocity(0, 1)">←<br>A</button>
+                                        <button class="key-btn" onclick="setVelocity(0, 0)">STOP<br>S</button>
+                                        <button class="key-btn" onclick="setVelocity(0, -1)">→<br>D</button>
+                                        <div></div>
+                                        <button class="key-btn" onclick="setVelocity(-50, 0)">↓<br>X</button>
+                                        <div></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="control-group">
+                                <h3>Ortam &amp; Engeller</h3>
+                                <select id="obstacleShape">
+                                    <option value="rectangle">Dikdörtgen</option>
+                                    <option value="circle">Daire</option>
+                                </select>
+                                <button id="obstacleModeBtn" onclick="addObstacleMode()" class="btn-info">Canvas'a Tıklayarak Ekle</button>
+                                <button onclick="clearObstacles()" class="btn-danger">Engelleri Temizle</button>
+                            </div>
                         </div>
-                        <div class="velocity-control">
-                            <label>Angular Velocity (rad/s):</label>
-                            <input type="range" id="angularVel" min="-3" max="3" value="0" step="0.1">
-                            <span id="angularVelValue">0</span>
+
+                        <div class="panel-section stats">
+                            <h3>📊 İstatistikler</h3>
+                            <div class="stat-item"><span>Robotlar</span><strong id="robotCount">0</strong></div>
+                            <div class="stat-item"><span>Topic'ler</span><strong id="topicCount">0</strong></div>
+                            <div class="stat-item"><span>Node'lar</span><strong id="nodeCount">0</strong></div>
+                            <div class="stat-item"><span>Mesajlar</span><strong id="messageCount">0</strong></div>
+                            <div class="stat-item"><span>Engeller</span><strong id="obstacleCount">0</strong></div>
+                            <div class="stat-item"><span>Otomasyon</span><strong id="automationCount">0</strong></div>
+                            <div class="stat-item"><span>FPS</span><strong id="fpsValue">0</strong></div>
                         </div>
-                        <div class="keyboard-controls">
-                            <p><strong>Klavye Kontrolleri:</strong></p>
-                            <div class="key-grid">
-                                <div></div>
-                                <button class="key-btn" onclick="setVelocity(50, 0)">↑<br>W</button>
-                                <div></div>
-                                <button class="key-btn" onclick="setVelocity(0, 1)">←<br>A</button>
-                                <button class="key-btn" onclick="setVelocity(0, 0)">STOP<br>S</button>
-                                <button class="key-btn" onclick="setVelocity(0, -1)">→<br>D</button>
-                                <div></div>
-                                <button class="key-btn" onclick="setVelocity(-50, 0)">↓<br>X</button>
-                                <div></div>
+                    </div>
+
+                    <div class="tab-content" data-tab-content="topics">
+                        <div class="panel-section">
+                            <h2>🧠 ROS2 Node Yönetimi</h2>
+                            <div class="control-group">
+                                <h3>Node Ekle</h3>
+                                <input type="text" id="nodeName" placeholder="Örn: teleop_panel">
+                                <select id="nodeType">
+                                    <option value="control">Control</option>
+                                    <option value="sensor">Sensor</option>
+                                    <option value="navigation">Navigation</option>
+                                    <option value="compute">Compute</option>
+                                </select>
+                                <button onclick="addNode()" class="btn-primary">Node Oluştur</button>
+                            </div>
+                            <div class="control-group">
+                                <h3>Topic Bağlantısı</h3>
+                                <select id="nodeConnect">
+                                    <option value="">Node Seç...</option>
+                                </select>
+                                <select id="topicConnect">
+                                    <option value="">Topic Seç...</option>
+                                </select>
+                                <select id="connectionType">
+                                    <option value="publisher">Publisher</option>
+                                    <option value="subscriber">Subscriber</option>
+                                </select>
+                                <button onclick="linkNodeTopic()" class="btn-success">Bağla</button>
+                            </div>
+                            <div class="control-group">
+                                <h3>Aktif Node'lar</h3>
+                                <ul id="nodeList" class="data-list"></ul>
+                            </div>
+                        </div>
+
+                        <div class="panel-section">
+                            <h2>📡 ROS2 Topics</h2>
+                            <div class="control-group">
+                                <h3>Topic Ekle</h3>
+                                <input type="text" id="topicName" placeholder="/cmd_vel">
+                                <select id="msgType">
+                                    <option value="geometry_msgs/Twist">geometry_msgs/Twist</option>
+                                    <option value="std_msgs/String">std_msgs/String</option>
+                                    <option value="sensor_msgs/LaserScan">sensor_msgs/LaserScan</option>
+                                    <option value="nav_msgs/Odometry">nav_msgs/Odometry</option>
+                                </select>
+                                <button onclick="addTopic()" class="btn-primary">Topic Ekle</button>
+                            </div>
+
+                            <div class="control-group">
+                                <h3>Mesaj Gönder</h3>
+                                <select id="sendTopic"></select>
+                                <textarea id="messageData" rows="2" placeholder="Mesaj içeriği">Merhaba ROS2!</textarea>
+                                <button onclick="sendMessage()" class="btn-success">Gönder</button>
+                            </div>
+
+                            <div class="control-group">
+                                <h3>Topic Özeti</h3>
+                                <ul id="topicList" class="data-list"></ul>
                             </div>
                         </div>
                     </div>
 
-                    <div class="control-group">
-                        <h3>Engel Ekle</h3>
-                        <select id="obstacleShape">
-                            <option value="rectangle">Dikdörtgen</option>
-                            <option value="circle">Daire</option>
-                        </select>
-                        <button onclick="addObstacleMode()" class="btn-info">Canvas'a Tıklayarak Ekle</button>
+                    <div class="tab-content" data-tab-content="automation">
+                        <div class="panel-section automation-panel">
+                            <h2>🧠 Komut Otomasyonu</h2>
+                            <div class="control-group">
+                                <h3>Yeni Kural</h3>
+                                <input type="text" id="automationTopic" placeholder="/cmd_text">
+                                <input type="text" id="automationTrigger" placeholder="ör: robo1 ileri">
+                                <select id="automationMatch">
+                                    <option value="contains">Mesaj tetikleyiciyi içeriyor</option>
+                                    <option value="prefix">Mesaj tetikleyici ile başlıyor</option>
+                                    <option value="exact">Mesaj tam eşleşiyor</option>
+                                </select>
+                                <select id="automationRobot">
+                                    <option value="">Robot seç...</option>
+                                </select>
+                                <select id="automationAction">
+                                    <option value="forward">İleri</option>
+                                    <option value="backward">Geri</option>
+                                    <option value="left">Sola Dön</option>
+                                    <option value="right">Sağa Dön</option>
+                                    <option value="stop">Dur</option>
+                                </select>
+                                <button onclick="addAutomationRule()" class="btn-success">Kural Ekle</button>
+                            </div>
+                            <div class="control-group">
+                                <h3>Aktif Kurallar</h3>
+                                <ul id="automationList" class="data-list automation-list"></ul>
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <div class="panel-section">
-                    <h2>📡 ROS2 Topics</h2>
-
-                    <div class="control-group">
-                        <h3>Topic Ekle</h3>
-                        <input type="text" id="topicName" placeholder="/cmd_vel">
-                        <select id="msgType">
-                            <option value="geometry_msgs/Twist">geometry_msgs/Twist</option>
-                            <option value="std_msgs/String">std_msgs/String</option>
-                            <option value="sensor_msgs/LaserScan">sensor_msgs/LaserScan</option>
-                            <option value="nav_msgs/Odometry">nav_msgs/Odometry</option>
-                        </select>
-                        <button onclick="addTopic()" class="btn-primary">Topic Ekle</button>
+                    <div class="tab-content" data-tab-content="playbooks">
+                        <div class="panel-section">
+                            <h2>⚡ Hızlı Komut Stüdyosu</h2>
+                            <p class="muted">Robot seç, hazır şablonu belirle, mesajı otomatik gönder.</p>
+                            <div class="playbook-form">
+                                <select id="playbookRobot">
+                                    <option value="">Robot seç...</option>
+                                </select>
+                                <select id="playbookTemplate"></select>
+                                <select id="playbookTopic">
+                                    <option value="/cmd_text">/cmd_text</option>
+                                </select>
+                                <button onclick="sendPlaybookCommand()" class="btn-success">Mesajı Gönder</button>
+                            </div>
+                        </div>
+                        <div class="panel-section">
+                            <h2>🎯 Robot Bazlı Aksiyonlar</h2>
+                            <div id="playbookGrid" class="playbook-grid"></div>
+                        </div>
                     </div>
 
-                    <div class="control-group">
-                        <h3>Mesaj Gönder</h3>
-                        <select id="sendTopic"></select>
-                        <textarea id="messageData" rows="2" placeholder="Mesaj içeriği (JSON gerekmez)">Merhaba ROS2!</textarea>
-                        <button onclick="sendMessage()" class="btn-success">Gönder</button>
+                    <div class="tab-content" data-tab-content="ops">
+                        <div class="panel-section diag-panel">
+                            <h2>🩺 ROS Diagnostics</h2>
+                            <div class="diag-grid">
+                                <div class="diag-card">
+                                    <span>Topic Latency</span>
+                                    <strong id="diagLatency">-- ms</strong>
+                                    <small>Son 1s ortalaması</small>
+                                </div>
+                                <div class="diag-card">
+                                    <span>Mesaj Throughput</span>
+                                    <strong id="diagThroughput">-- msg/s</strong>
+                                    <small>Simülasyon mesajları</small>
+                                </div>
+                                <div class="diag-card">
+                                    <span>Sistem Sağlığı</span>
+                                    <strong id="diagHealth">--</strong>
+                                    <small>ROS graph durumu</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="panel-section">
+                            <h2>⚙️ Parametre Yöneticisi</h2>
+                            <div class="control-group">
+                                <input type="text" id="parameterNode" placeholder="Node adı (örn: teleop_panel)">
+                                <input type="text" id="parameterKey" placeholder="Parametre adı (örn: max_speed)">
+                                <input type="text" id="parameterValue" placeholder="Değer (örn: 0.5)">
+                                <button onclick="addParameter()" class="btn-primary">Parametre Kaydet</button>
+                            </div>
+                            <ul id="parameterList" class="data-list"></ul>
+                        </div>
+                        <div class="panel-section">
+                            <h2>🛠️ Service Center</h2>
+                            <div class="control-group">
+                                <input type="text" id="serviceName" placeholder="Servis adı (örn: /reset_world)">
+                                <input type="text" id="serviceType" placeholder="Tip (örn: std_srvs/Trigger)">
+                                <input type="text" id="serviceEndpoint" placeholder="Simüle edilen endpoint açıklaması">
+                                <button onclick="registerService()" class="btn-success">Servis Kaydet</button>
+                            </div>
+                            <div id="serviceList" class="service-list"></div>
+                        </div>
                     </div>
-                </div>
-
-                <div class="panel-section stats">
-                    <h3>📊 İstatistikler</h3>
-                    <div class="stat-item">
-                        <span>Robotlar:</span>
-                        <span id="robotCount">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span>Topics:</span>
-                        <span id="topicCount">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span>Mesajlar:</span>
-                        <span id="messageCount">0</span>
-                    </div>
-                </div>
-
-                <div class="control-group">
-                    <button onclick="resetSimulator()" class="btn-danger">Sıfırla</button>
                 </div>
             </div>
 
-            <!-- Center: Simulation Canvas (Gazebo-like) -->
+            <!-- Center Panel -->
             <div class="center-panel">
                 <div class="panel-section simulation-panel">
                     <div class="sim-header">
-                        <h2>🎮 Simülasyon Ortamı</h2>
+                        <div>
+                            <h2>🛰️ 2D Simülasyon Alanı</h2>
+                            <p class="muted">Rust + WebAssembly + Canvas Pipeline</p>
+                        </div>
                         <div class="sim-controls">
-                            <button onclick="toggleGrid()" class="btn-small">Grid</button>
-                            <button onclick="clearObstacles()" class="btn-small">Engelleri Temizle</button>
+                            <select id="scenarioSelect" class="inline-select">
+                                <option value="training">Teleop Eğitimi</option>
+                                <option value="maze">Labirent Atölyesi</option>
+                                <option value="warehouse">Depo &amp; Lojistik</option>
+                            </select>
+                            <button onclick="applyScenario()" class="btn-primary btn-small">Senaryoyu Yükle</button>
+                            <button onclick="toggleGrid()" id="gridToggleBtn" class="btn-small">Grid: Açık</button>
+                            <button onclick="resetSimulator()" class="btn-danger btn-small">Reset</button>
                         </div>
                     </div>
-                    <canvas id="simCanvas" width="1000" height="700"></canvas>
+                    <p class="scenario-description" id="scenarioDescription">Senaryo seçerek başlayın.</p>
+                    <canvas id="simCanvas" width="1200" height="700"></canvas>
                     <div class="sim-info">
                         <span id="mousePos">Mouse: (0, 0)</span>
                         <span id="simMode">Mode: Normal</span>
+                        <span id="activeScenario">Aktif Senaryo: -</span>
+                    </div>
+                    <div class="floating-toolbar">
+                        <button class="btn-small" onclick="openCommandPalette()">Komut Paleti</button>
+                        <button class="btn-small" onclick="activateTab('playbooks')">Hızlı Komutlar</button>
+                        <button class="btn-small" onclick="activateTab('topics')">Topic Yönetimi</button>
                     </div>
                 </div>
 
-                <div class="panel-section">
-                    <h2>📡 Mesaj Monitörü</h2>
-                    <div id="messageMonitor" class="message-monitor"></div>
-                    <button onclick="clearMessages()" class="btn-small">Mesajları Temizle</button>
+                <div class="panel-grid">
+                    <div class="panel-section telemetry-panel">
+                        <h2>📈 Robot Telemetrisi</h2>
+                        <p class="muted">Canvas üzerinde robot seçin ya da soldan bir robot seçin.</p>
+                        <div class="telemetry-name" id="telemetryName">Robot seçilmedi</div>
+                        <div class="telemetry-cards">
+                            <div class="telemetry-card">
+                                <span>Konum</span>
+                                <strong id="telemetryPosition">x: -, y: -</strong>
+                            </div>
+                            <div class="telemetry-card">
+                                <span>Yön</span>
+                                <strong id="telemetryHeading">0°</strong>
+                            </div>
+                            <div class="telemetry-card">
+                                <span>Linear</span>
+                                <strong id="telemetryLinear">0 m/s</strong>
+                            </div>
+                            <div class="telemetry-card">
+                                <span>Angular</span>
+                                <strong id="telemetryAngular">0 rad/s</strong>
+                            </div>
+                        </div>
+                        <button onclick="setVelocity(0, 0)" class="btn-info btn-small">Acil Dur</button>
+                    </div>
+
+                    <div class="panel-section world-panel">
+                        <h2>🌍 Dünya Durumu</h2>
+                        <div class="world-summary">
+                            <div class="world-card">
+                                <span>Engeller</span>
+                                <strong id="worldObstacle">0</strong>
+                            </div>
+                            <div class="world-card">
+                                <span>Robotlar</span>
+                                <strong id="worldRobots">0</strong>
+                            </div>
+                            <div class="world-card">
+                                <span>Nodes</span>
+                                <strong id="worldNodes">0</strong>
+                            </div>
+                        </div>
+                        <p class="muted" id="worldDescription">Senaryo yüklenmesini bekleniyor.</p>
+                        <button onclick="addObstacleMode()" class="btn-ghost btn-small">Engel Modu Aç/Kapat</button>
+                    </div>
+                </div>
+
+                <div class="panel-section rosgraph-panel">
+                    <div class="section-header">
+                        <h2>🕸️ ROS Graph</h2>
+                        <div class="legend">
+                            <span class="legend-node">Node</span>
+                            <span class="legend-topic">Topic</span>
+                            <span class="legend-pub">Pub</span>
+                            <span class="legend-sub">Sub</span>
+                        </div>
+                    </div>
+                    <canvas id="rosGraph" width="900" height="320"></canvas>
+                </div>
+
+                <div class="panel-grid">
+                    <div class="panel-section">
+                        <h2>📡 Mesaj Monitörü</h2>
+                        <div id="messageMonitor" class="message-monitor"></div>
+                        <button onclick="clearMessages()" class="btn-small">Mesajları Temizle</button>
+                    </div>
+                    <div class="panel-section console-panel">
+                        <h2>🧾 Sistem Konsolu</h2>
+                        <div id="systemConsole" class="console-output"></div>
+                        <button onclick="clearConsole()" class="btn-small">Konsolu Temizle</button>
+                    </div>
+                    <div class="panel-section timeline-panel">
+                        <h2>🧠 Otomasyon Zaman Çizelgesi</h2>
+                        <div id="automationTimeline" class="timeline"></div>
+                    </div>
                 </div>
             </div>
 
@@ -208,13 +440,24 @@
                 <div class="panel-section">
                     <h2>💡 İpuçları</h2>
                     <ul class="tips-list">
-                        <li>Robotları sürükleyerek hareket ettirebilirsiniz</li>
-                        <li>Grid açıp kapatarak daha iyi görebilirsiniz</li>
-                        <li>Mesajlar otomatik timestamp ile kaydedilir</li>
+                        <li>Robotları sürükleyerek konumlarını güncelleyebilirsiniz.</li>
+                        <li>Grid aç/kapa ile ortamı daha net inceleyin.</li>
+                        <li>Mesajlar otomatik timestamp ile kaydedilir.</li>
                         <li>Klavye ile hızlı kontrol: W/A/S/D/X</li>
+                        <li>Node'ları topic'lere bağlayarak ROS graph'ı oluşturun.</li>
                     </ul>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div id="commandPalette" class="command-palette hidden">
+        <div class="palette-dialog">
+            <div class="palette-header">
+                <input type="text" id="paletteSearch" placeholder="Komut ara veya çalıştır (Ctrl+K)">
+                <button id="paletteClose" class="btn-small">Kapat</button>
+            </div>
+            <div id="paletteResults" class="palette-results"></div>
         </div>
     </div>
 

@@ -54,6 +54,17 @@ python3 server.py
 http://localhost:8000
 ```
 
+### 🐳 Docker ile Çalıştırma
+```bash
+# Görüntüyü oluştur
+docker build -t ros2-wasm-interactive .
+
+# Konteyneri başlat
+docker run --rm -p 8000:8000 ros2-wasm-interactive
+
+# Ardından tarayıcıdan http://localhost:8000
+```
+
 ## 📖 Kullanım Kılavuzu
 
 ### 🤖 Robot Ekleme ve Kontrol

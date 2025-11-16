@@ -1,19 +1,19 @@
-use wasm_bindgen::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::f64::consts::PI;
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     fn log(s: &str);
-// }
+}
 
 macro_rules! console_log {
     ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
 }
 
-// ROS2 Node structure
+/// Representation of a ROS2 node exposed to the UI.
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Ros2Node {
     pub name: String,
@@ -22,7 +22,7 @@ pub struct Ros2Node {
     pub y: f64,
 }
 
-// ROS2 Topic structure
+/// ROS2 topic metadata for visualization.
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Ros2Topic {
     pub name: String,
@@ -31,7 +31,7 @@ pub struct Ros2Topic {
     pub subscribers: Vec<String>,
 }
 
-// ROS2 Message structure
+/// Lightweight ROS2 message log entry used in the UI.
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Ros2Message {
     pub topic: String,
@@ -39,7 +39,7 @@ pub struct Ros2Message {
     pub timestamp: f64,
 }
 
-// Robot structure for simulation
+/// Robot entity simulated on the 2D canvas.
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Robot {
     pub name: String,
@@ -53,7 +53,7 @@ pub struct Robot {
     pub height: f64,
 }
 
-// Obstacle structure
+/// Simple geometric obstacle used to populate the playground.
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Obstacle {
     pub x: f64,
@@ -63,6 +63,57 @@ pub struct Obstacle {
     pub shape: String, // "rectangle" or "circle"
 }
 
+const DELTA_TIME_STEP: f64 = 0.016;
+const LINEAR_FAST: f64 = 60.0;
+const LINEAR_REVERSE: f64 = -40.0;
+const ANGULAR_FAST: f64 = 1.2;
+
+impl Robot {
+    fn integrate(&mut self, delta_time: f64) {
+        self.theta += self.angular_vel * delta_time;
+        self.x += self.linear_vel * self.theta.cos() * delta_time;
+        self.y += self.linear_vel * self.theta.sin() * delta_time;
+        Self::wrap_angle(&mut self.theta);
+    }
+
+    fn wrap_angle(angle: &mut f64) {
+        while *angle > PI {
+            *angle -= 2.0 * PI;
+        }
+        while *angle < -PI {
+            *angle += 2.0 * PI;
+        }
+    }
+
+    fn apply_action_profile(&mut self, action: &str) -> bool {
+        match action {
+            "forward" => {
+                self.linear_vel = LINEAR_FAST;
+                self.angular_vel = 0.0;
+            }
+            "backward" => {
+                self.linear_vel = LINEAR_REVERSE;
+                self.angular_vel = 0.0;
+            }
+            "left" => {
+                self.linear_vel = 0.0;
+                self.angular_vel = ANGULAR_FAST;
+            }
+            "right" => {
+                self.linear_vel = 0.0;
+                self.angular_vel = -ANGULAR_FAST;
+            }
+            "stop" => {
+                self.linear_vel = 0.0;
+                self.angular_vel = 0.0;
+            }
+            _ => return false,
+        }
+        true
+    }
+}
+
+/// Primary simulation state shared with the WebAssembly front-end.
 #[wasm_bindgen]
 pub struct Ros2Simulator {
     nodes: HashMap<String, Ros2Node>,
@@ -222,21 +273,8 @@ impl Ros2Simulator {
 
     pub fn update_robots(&mut self, dt: f64) {
         self.last_update = dt;
-        let delta_time = 0.016; // Assume 60 FPS
-
         for robot in self.robots.values_mut() {
-            // Differential drive kinematics
-            robot.theta += robot.angular_vel * delta_time;
-            robot.x += robot.linear_vel * robot.theta.cos() * delta_time;
-            robot.y += robot.linear_vel * robot.theta.sin() * delta_time;
-
-            // Wrap angle
-            while robot.theta > PI {
-                robot.theta -= 2.0 * PI;
-            }
-            while robot.theta < -PI {
-                robot.theta += 2.0 * PI;
-            }
+            robot.integrate(DELTA_TIME_STEP);
         }
     }
 
@@ -251,12 +289,33 @@ impl Ros2Simulator {
         console_log!("Obstacle added");
     }
 
+    pub fn clear_obstacles(&mut self) {
+        self.obstacles.clear();
+        console_log!("All obstacles cleared");
+    }
+
     pub fn get_robots_json(&self) -> String {
         serde_json::to_string(&self.robots.values().collect::<Vec<_>>()).unwrap_or_default()
     }
 
     pub fn get_obstacles_json(&self) -> String {
         serde_json::to_string(&self.obstacles).unwrap_or_default()
+    }
+
+    pub fn move_robot(&mut self, name: String, x: f64, y: f64) {
+        if let Some(robot) = self.robots.get_mut(&name) {
+            robot.x = x;
+            robot.y = y;
+        }
+    }
+
+    pub fn apply_action(&mut self, name: String, action: String) {
+        let action_key = action.to_lowercase();
+        if let Some(robot) = self.robots.get_mut(&name) {
+            if robot.apply_action_profile(&action_key) {
+                console_log!("Applied {} action to {}", action_key, name);
+            }
+        }
     }
 
     pub fn get_robot_count(&self) -> usize {
