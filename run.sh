@@ -5,9 +5,9 @@ echo "===================================="
 echo ""
 
 # Check if pkg directory exists
-if [ ! -d "pkg" ]; then
+if [ ! -d "public/pkg" ]; then
     echo "⚙️  WASM paketi bulunamadı. Derleniyor..."
-    wasm-pack build --target web
+    wasm-pack build --target web --out-dir public/pkg
     echo "✅ Derleme tamamlandı!"
     echo ""
 fi

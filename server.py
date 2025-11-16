@@ -7,7 +7,12 @@ import socketserver
 
 PORT = 8000
 
+PUBLIC_DIR = "public"
+
+
 class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=PUBLIC_DIR, **kwargs)
     def end_headers(self):
         # Add CORS headers
         self.send_header('Cross-Origin-Opener-Policy', 'same-origin')

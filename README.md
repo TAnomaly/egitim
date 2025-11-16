@@ -40,7 +40,7 @@ WebAssembly & Rust ile güçlendirilmiş, **The Construct** tarzında tam özell
 ### Kurulum
 ```bash
 # 1. Projeyi derleyin (zaten derlenmiş)
-wasm-pack build --target web
+wasm-pack build --target web --out-dir public/pkg
 
 # 2. Sunucuyu başlatın
 python3 server.py
