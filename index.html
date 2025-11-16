@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROS2 İnteraktif Simülatör - The Construct Style</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 ROS2 İnteraktif Simülatör</h1>
+            <p>WebAssembly & Rust - Gazebo-Style 2D Environment</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Left Panel: Robot & Environment Controls -->
+            <div class="left-panel">
+                <div class="panel-section">
+                    <h2>🤖 Robot Kontrolleri</h2>
+
+                    <div class="control-group">
+                        <h3>Robot Ekle</h3>
+                        <input type="text" id="robotName" placeholder="Robot ismi (örn: turtle1)">
+                        <select id="robotType">
+                            <option value="turtlebot">TurtleBot3</option>
+                            <option value="differential">Differential Drive</option>
+                            <option value="ackermann">Ackermann Drive</option>
+                        </select>
+                        <button onclick="addRobot()" class="btn-primary">Robot Ekle</button>
+                    </div>
+
+                    <div class="control-group">
+                        <h3>Robot Hareket</h3>
+                        <select id="controlRobot">
+                            <option value="">Robot Seç...</option>
+                        </select>
+                        <div class="velocity-control">
+                            <label>Linear Velocity (m/s):</label>
+                            <input type="range" id="linearVel" min="-100" max="100" value="0" step="5">
+                            <span id="linearVelValue">0</span>
+                        </div>
+                        <div class="velocity-control">
+                            <label>Angular Velocity (rad/s):</label>
+                            <input type="range" id="angularVel" min="-3" max="3" value="0" step="0.1">
+                            <span id="angularVelValue">0</span>
+                        </div>
+                        <div class="keyboard-controls">
+                            <p><strong>Klavye Kontrolleri:</strong></p>
+                            <div class="key-grid">
+                                <div></div>
+                                <button class="key-btn" onclick="setVelocity(50, 0)">↑<br>W</button>
+                                <div></div>
+                                <button class="key-btn" onclick="setVelocity(0, 1)">←<br>A</button>
+                                <button class="key-btn" onclick="setVelocity(0, 0)">STOP<br>S</button>
+                                <button class="key-btn" onclick="setVelocity(0, -1)">→<br>D</button>
+                                <div></div>
+                                <button class="key-btn" onclick="setVelocity(-50, 0)">↓<br>X</button>
+                                <div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <h3>Engel Ekle</h3>
+                        <select id="obstacleShape">
+                            <option value="rectangle">Dikdörtgen</option>
+                            <option value="circle">Daire</option>
+                        </select>
+                        <button onclick="addObstacleMode()" class="btn-info">Canvas'a Tıklayarak Ekle</button>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h2>📡 ROS2 Topics</h2>
+
+                    <div class="control-group">
+                        <h3>Topic Ekle</h3>
+                        <input type="text" id="topicName" placeholder="/cmd_vel">
+                        <select id="msgType">
+                            <option value="geometry_msgs/Twist">geometry_msgs/Twist</option>
+                            <option value="std_msgs/String">std_msgs/String</option>
+                            <option value="sensor_msgs/LaserScan">sensor_msgs/LaserScan</option>
+                            <option value="nav_msgs/Odometry">nav_msgs/Odometry</option>
+                        </select>
+                        <button onclick="addTopic()" class="btn-primary">Topic Ekle</button>
+                    </div>
+
+                    <div class="control-group">
+                        <h3>Mesaj Gönder</h3>
+                        <select id="sendTopic"></select>
+                        <textarea id="messageData" rows="2" placeholder="Mesaj içeriği (JSON gerekmez)">Merhaba ROS2!</textarea>
+                        <button onclick="sendMessage()" class="btn-success">Gönder</button>
+                    </div>
+                </div>
+
+                <div class="panel-section stats">
+                    <h3>📊 İstatistikler</h3>
+                    <div class="stat-item">
+                        <span>Robotlar:</span>
+                        <span id="robotCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Topics:</span>
+                        <span id="topicCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Mesajlar:</span>
+                        <span id="messageCount">0</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <button onclick="resetSimulator()" class="btn-danger">Sıfırla</button>
+                </div>
+            </div>
+
+            <!-- Center: Simulation Canvas (Gazebo-like) -->
+            <div class="center-panel">
+                <div class="panel-section simulation-panel">
+                    <div class="sim-header">
+                        <h2>🎮 Simülasyon Ortamı</h2>
+                        <div class="sim-controls">
+                            <button onclick="toggleGrid()" class="btn-small">Grid</button>
+                            <button onclick="clearObstacles()" class="btn-small">Engelleri Temizle</button>
+                        </div>
+                    </div>
+                    <canvas id="simCanvas" width="1000" height="700"></canvas>
+                    <div class="sim-info">
+                        <span id="mousePos">Mouse: (0, 0)</span>
+                        <span id="simMode">Mode: Normal</span>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h2>📡 Mesaj Monitörü</h2>
+                    <div id="messageMonitor" class="message-monitor"></div>
+                    <button onclick="clearMessages()" class="btn-small">Mesajları Temizle</button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Tutorials & Info -->
+            <div class="right-panel">
+                <div class="panel-section">
+                    <h2>🎓 Hızlı Başlangıç</h2>
+                    <div class="tutorial-steps">
+                        <div class="step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <h4>TurtleBot Ekle</h4>
+                                <p>Sol panelden "turtle1" adında bir TurtleBot oluşturun.</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <h4>Robotu Hareket Ettir</h4>
+                                <p>Klavye kontrolleri (W,A,S,D) veya sliderlar ile robotu kontrol edin.</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <h4>Engeller Ekle</h4>
+                                <p>Canvas'a tıklayarak engeller oluşturun.</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <h4>ROS2 Topics</h4>
+                                <p>/cmd_vel topic'i ekleyip mesaj gönderin.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h2>🔧 Robot Tipleri</h2>
+                    <div class="robot-info">
+                        <div class="robot-card">
+                            <h4>🐢 TurtleBot3</h4>
+                            <p>Popüler eğitim robotu. Differential drive kinematik.</p>
+                            <ul>
+                                <li>Max Linear: ±0.22 m/s</li>
+                                <li>Max Angular: ±2.84 rad/s</li>
+                            </ul>
+                        </div>
+                        <div class="robot-card">
+                            <h4>⚙️ Differential Drive</h4>
+                            <p>İki tekerlekli sistem. Basit ve etkili.</p>
+                            <ul>
+                                <li>Sıfır dönüş yarıçapı</li>
+                                <li>Yüksek manevra</li>
+                            </ul>
+                        </div>
+                        <div class="robot-card">
+                            <h4>🚗 Ackermann</h4>
+                            <p>Araba benzeri yönlendirme sistemi.</p>
+                            <ul>
+                                <li>Gerçekçi hareket</li>
+                                <li>Minimum dönüş yarıçapı</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h2>💡 İpuçları</h2>
+                    <ul class="tips-list">
+                        <li>Robotları sürükleyerek hareket ettirebilirsiniz</li>
+                        <li>Grid açıp kapatarak daha iyi görebilirsiniz</li>
+                        <li>Mesajlar otomatik timestamp ile kaydedilir</li>
+                        <li>Klavye ile hızlı kontrol: W/A/S/D/X</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
